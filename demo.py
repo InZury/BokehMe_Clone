@@ -139,7 +139,6 @@ parser.add_argument('--iunet_checkpoint_path',       type=str,   default='./chec
 # Input
 parser.add_argument('--image_path',                  type=str,   default='./inputs/21.jpg')
 parser.add_argument('--disp_path',                   type=str,   default='./inputs/21.png')
-parser.add_argument('--',                            type=str)
 parser.add_argument('--save_dir',                    type=str,   default='./outputs')
 parser.add_argument('--K',                           type=float, default=60,          help='blur parameter')
 parser.add_argument('--disp_focus',                  type=float, default=90/255,      help='refocused disparity (0~1)')

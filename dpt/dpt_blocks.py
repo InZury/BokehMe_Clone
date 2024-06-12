@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 
-from dpt_vit import make_pretrained_vit_base_resnet50_384
+from .dpt_vit import make_pretrained_vit_base_resnet50_384
 
 
 class ResidualConvUnitCustom(nn.Module):
@@ -36,7 +36,7 @@ class ResidualConvUnitCustom(nn.Module):
         if self.batch_norm:
             result = self.batch_norm2(result)
 
-        return self.skip_add(result, data)
+        return self.skip_add.add(result, data)
 
 
 class FeatureFusionBlockCustom(nn.Module):
@@ -52,18 +52,18 @@ class FeatureFusionBlockCustom(nn.Module):
         self.out_conv = nn.Conv2d(
             features, out_features, kernel_size=1, stride=1, padding=0, bias=True, groups=self.groups)
 
-        self.residual_conv_unit1 = ResidualConvUnitCustom(features, activation, batch_norm)
-        self.residual_conv_unit2 = ResidualConvUnitCustom(features, activation, batch_norm)
+        self.resConfUnit1 = ResidualConvUnitCustom(features, activation, batch_norm)
+        self.resConfUnit2 = ResidualConvUnitCustom(features, activation, batch_norm)
         self.skip_add = torch.ao.nn.quantized.FloatFunctional()
 
     def forward(self, *datas):
         result = datas[0]
 
         if len(datas) == 2:
-            residual = self.residual_conv_unit1(datas[1])
+            residual = self.resConfUnit1(datas[1])
             result = self.skip_add.add(result, residual)
 
-        result = self.residual_conv_unit2(result)
+        result = self.resConfUnit2(result)
         result = func.interpolate(result, scale_factor=2, mode='bilinear', align_corners=self.align_corners)
         result = self.out_conv(result)
 
@@ -76,15 +76,15 @@ def make_scratch(input_shape, output_shape, group=1, expand=False):
     if expand:
         output_shape1, output_shape2, output_shape3, output_shape4 = [output_shape * data for data in [1, 2, 4, 8]]
     else:
-        output_shape1, output_shape2, output_shape3, output_shape4 = output_shape
+        output_shape1 = output_shape2 = output_shape3 = output_shape4 = output_shape
 
-    scratch.residual_layer1 = nn.Conv2d(
+    scratch.layer1_rn = nn.Conv2d(
         input_shape[0], output_shape1, kernel_size=3, stride=1, padding=1, bias=False, groups=group)
-    scratch.residual_layer2 = nn.Conv2d(
+    scratch.layer2_rn = nn.Conv2d(
         input_shape[1], output_shape2, kernel_size=3, stride=1, padding=1, bias=False, groups=group)
-    scratch.residual_layer3 = nn.Conv2d(
+    scratch.layer3_rn = nn.Conv2d(
         input_shape[2], output_shape3, kernel_size=3, stride=1, padding=1, bias=False, groups=group)
-    scratch.residual_layer4 = nn.Conv2d(
+    scratch.layer4_rn = nn.Conv2d(
         input_shape[3], output_shape4, kernel_size=3, stride=1, padding=1, bias=False, groups=group)
 
     return scratch

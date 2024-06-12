@@ -2,9 +2,9 @@ import torch
 import torch.nn.functional as func
 
 from torchvision.transforms import Compose
-from dpt_io import read_image, write_depth
-from dpt_model import DPTDepthModel
-from dpt_transforms import *  # Resize, NormalizeImage, PrepareForNet
+from .dpt_io import read_image, write_depth
+from .dpt_model import DPTDepthModel
+from .dpt_transforms import *  # Resize, NormalizeImage, PrepareForNet
 
 
 def set_model_type(model) -> torch.Tensor:
@@ -42,6 +42,7 @@ def dpt_run(input_path, model_path, optimize=True):
     print('start dpt processing')
 
     img = read_image(input_path)
+
     img_input = transform({'image': img})['image']
 
     with torch.no_grad():
@@ -57,6 +58,6 @@ def dpt_run(input_path, model_path, optimize=True):
             .squeeze().cpu().numpy()
         )
 
-        file_name = input_path[7:-4]
+        file_name = input_path[:-4]
         write_depth(file_name, prediction, bits=2, absolute_depth=False)
     print('dpt is finished')

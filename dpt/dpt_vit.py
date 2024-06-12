@@ -33,13 +33,13 @@ class ProjectionReadout(nn.Module):
     def __init__(self, in_features, start_index=1):
         super(ProjectionReadout, self).__init__()
         self.start_index = start_index
-        self.projection = nn.Sequential(nn.Linear(2 * in_features, in_features), nn.GELU())
+        self.project = nn.Sequential(nn.Linear(2 * in_features, in_features), nn.GELU())
 
     def forward(self, data):
         readout = data[:, 0].unsqueeze(1).expand_as(data[:, self.start_index:])
         features = torch.cat((data[:, self.start_index:], readout), -1)
 
-        return self.projection(features)
+        return self.project(features)
 
 
 class Transpose(nn.Module):
@@ -90,7 +90,7 @@ def resize_pos_embedding(self, pos_embedding, grid_size_height, grid_size_width)
 
 def forward_flex(self, data):
     batch, channel, height, width = data.shape
-    pos_embed = self.resize_pos_embedding(self.pos_embedding, height // self.patch_size[1], width // self.patch_size[0])
+    pos_embed = self.resize_pos_embedding(self.pos_embed, height // self.patch_size[1], width // self.patch_size[0])
     # B = data.shape[0]
 
     if hasattr(self.patch_embed, 'backbone'):
@@ -102,15 +102,15 @@ def forward_flex(self, data):
     data = self.patch_embed.proj(data).flatten(2).transpose(1, 2)
 
     if getattr(self, 'dist_token', None) is not None:
-        class_token = self.class_token.expand(batch, -1, -1)
+        class_token = self.cls_token.expand(batch, -1, -1)
         dist_token = self.dist_token.expand(batch, -1, -1)
         data = torch.cat((class_token, dist_token, data), dim=1)
     else:
-        class_tokens = self.class_token.expand(batch, -1, -1)
+        class_tokens = self.cls_token.expand(batch, -1, -1)
         data = torch.cat((class_tokens, data), dim=1)
 
     data = data + pos_embed
-    data = self.pos_dropout(data)
+    data = self.pos_drop(data)
 
     for block in self.blocks:
         data = block(data)
@@ -142,17 +142,17 @@ def forward_vit(pretrained, data):
 
     if layer1.ndim == 3:
         layer1 = unflatten(layer1)
-    if layer1.ndim == 3:
+    if layer2.ndim == 3:
         layer2 = unflatten(layer2)
-    if layer1.ndim == 3:
+    if layer3.ndim == 3:
         layer3 = unflatten(layer3)
-    if layer1.ndim == 3:
+    if layer4.ndim == 3:
         layer4 = unflatten(layer4)
 
     layer1 = pretrained.act_postprocess1[3: len(pretrained.act_postprocess1)](layer1)
     layer2 = pretrained.act_postprocess2[3: len(pretrained.act_postprocess2)](layer2)
-    layer3 = pretrained.act_postprocess1[3: len(pretrained.act_postprocess3)](layer3)
-    layer4 = pretrained.act_postprocess1[3: len(pretrained.act_postprocess4)](layer4)
+    layer3 = pretrained.act_postprocess3[3: len(pretrained.act_postprocess3)](layer3)
+    layer4 = pretrained.act_postprocess4[3: len(pretrained.act_postprocess4)](layer4)
 
     return layer1, layer2, layer3, layer4
 
@@ -181,9 +181,9 @@ def make_vit_base_resnet50_backbone(
     start_index=1,
     enable_attention_hooks=False
 ):
-    features = [96, 192, 384, 768] if features is None else features
+    feature = [256, 512, 768, 768] if features is None else features
     size = [384, 384] if size is None else size
-    hooks = [2, 5, 8, 11] if hooks is None else hooks
+    hooks = [0, 1, 8, 11] if hooks is None else hooks
 
     pretrained = nn.Module()
     pretrained.model = model
@@ -207,10 +207,10 @@ def make_vit_base_resnet50_backbone(
 
     pretrained.activations = activations
 
-    readout_operation = get_readout_operation(vit_features, features, use_readout, start_index)
+    readout_operation = get_readout_operation(vit_features, feature, use_readout, start_index)
 
     if use_vit_only:
-        pretrained.act_post_process1 = nn.Sequential(
+        pretrained.act_postprocess1 = nn.Sequential(
             readout_operation[0],
             Transpose(1, 2),
             nn.Unflatten(2, torch.Size([size[0] // 16, size[1] // 16])),
@@ -233,7 +233,7 @@ def make_vit_base_resnet50_backbone(
             )
         )
 
-        pretrained.act_post_process2 = nn.Sequential(
+        pretrained.act_postprocess2 = nn.Sequential(
             readout_operation[1],
             Transpose(1, 2),
             nn.Unflatten(2, torch.Size([size[0] // 16, size[1] // 16])),
@@ -259,7 +259,7 @@ def make_vit_base_resnet50_backbone(
         pretrained.act_postprocess1 = nn.Sequential(nn.Identity(), nn.Identity(), nn.Identity())
         pretrained.act_postprocess2 = nn.Sequential(nn.Identity(), nn.Identity(), nn.Identity())
 
-    pretrained.act_post_process3 = nn.Sequential(
+    pretrained.act_postprocess3 = nn.Sequential(
         readout_operation[2],
         Transpose(1, 2),
         nn.Unflatten(2, torch.Size([size[0] // 16, size[1] // 16])),
@@ -271,7 +271,7 @@ def make_vit_base_resnet50_backbone(
             padding=0
         )
     )
-    pretrained.act_post_process4 = nn.Sequential(
+    pretrained.act_postprocess4 = nn.Sequential(
         readout_operation[3],
         Transpose(1, 2),
         nn.Unflatten(2, torch.Size([size[0] // 16, size[1] // 16])),

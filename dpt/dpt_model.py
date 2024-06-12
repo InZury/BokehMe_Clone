@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from dpt_blocks import (FeatureFusionBlockCustom, make_encoder)
-from dpt_vit import forward_vit
+from .dpt_blocks import (FeatureFusionBlockCustom, make_encoder)
+from .dpt_vit import forward_vit
 
 
 class BaseModel(nn.Module):
@@ -16,7 +16,7 @@ class BaseModel(nn.Module):
 
 
 class DPT(BaseModel):
-    def __init__(self, head, features=256, backbone='vit_base_resnet50_384', readout='project',
+    def __init__(self, head, features=256, backbone='vit_base_resnet50_384', readout='projection',
                  channels_last=False, batch_norm=False, enable_attention_hooks=False):
         super(DPT, self).__init__()
 
@@ -38,10 +38,10 @@ class DPT(BaseModel):
 
         layer1, layer2, layer3, layer4 = forward_vit(self.pretrained, data)
 
-        residual_layer1 = self.scratch.residual_layer1(layer1)
-        residual_layer2 = self.scratch.residual_layer2(layer2)
-        residual_layer3 = self.scratch.residual_layer3(layer3)
-        residual_layer4 = self.scratch.residual_layer4(layer4)
+        residual_layer1 = self.scratch.layer1_rn(layer1)
+        residual_layer2 = self.scratch.layer2_rn(layer2)
+        residual_layer3 = self.scratch.layer3_rn(layer3)
+        residual_layer4 = self.scratch.layer4_rn(layer4)
 
         path4 = self.scratch.refinenet4(residual_layer4)
         path3 = self.scratch.refinenet3(path4, residual_layer3)
@@ -60,7 +60,7 @@ class DPTDepthModel(DPT):
         head = nn.Sequential(
             nn.Conv2d(features, features // 2, kernel_size=3, stride=1, padding=1),
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-            nn.Conv2d(features, 32, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(features // 2, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0),
             nn.ReLU(inplace=True) if non_negative else nn.Identity(),

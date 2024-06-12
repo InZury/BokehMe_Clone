@@ -29,17 +29,7 @@ class Resize(object):
         scale_width = self.width / width
 
         if self.keep_aspect_ratio:
-            if self.resize_method == 'lower_bound':
-                if scale_width > scale_height:
-                    scale_height = scale_width
-                else:
-                    scale_width = scale_height
-            elif self.resize_method == 'upper_bound':
-                if scale_width < scale_height:
-                    scale_height = scale_width
-                else:
-                    scale_width = scale_height
-            elif self.resize_method == 'minimal':
+            if self.resize_method == 'minimal':
                 if abs(1 - scale_width) < abs(1 - scale_height):
                     scale_height = scale_width
                 else:
@@ -47,13 +37,7 @@ class Resize(object):
             else:
                 raise ValueError(f'resize_method {self.resize_method} not implemented')
 
-        if self.resize_method == 'lower_bound':
-            new_height = self.constrain_to_multiple_of(scale_height * height, min_val=self.height)
-            new_width = self.constrain_to_multiple_of(scale_width * width, min_val=self.width)
-        elif self.resize_method == 'upper_bound':
-            new_height = self.constrain_to_multiple_of(scale_height * height, max_val=self.height)
-            new_width = self.constrain_to_multiple_of(scale_width * width, max_val=self.width)
-        elif self.resize_method == 'minimal':
+        if self.resize_method == 'minimal':
             new_height = self.constrain_to_multiple_of(scale_height * height)
             new_width = self.constrain_to_multiple_of(scale_width * width)
         else:
