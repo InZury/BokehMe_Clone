@@ -13,6 +13,7 @@ import torch.nn.functional as func
 
 from neural_renderer import ARNet, IUNet
 from classical_renderer.scatter import ModuleRenderScatter
+from dpt.run_dpt import dpt_run
 
 
 def gaussian_blur(input_data, radius, sigma=None):
@@ -138,6 +139,7 @@ parser.add_argument('--iunet_checkpoint_path',       type=str,   default='./chec
 # Input
 parser.add_argument('--image_path',                  type=str,   default='./inputs/21.jpg')
 parser.add_argument('--disp_path',                   type=str,   default='./inputs/21.png')
+parser.add_argument('--',                            type=str)
 parser.add_argument('--save_dir',                    type=str,   default='./outputs')
 parser.add_argument('--K',                           type=float, default=60,          help='blur parameter')
 parser.add_argument('--disp_focus',                  type=float, default=90/255,      help='refocused disparity (0~1)')
@@ -185,6 +187,13 @@ gamma_value = parser_args.gamma           # 1 ~ 5
 image_data = cv2.imread(parser_args.image_path).astype(np.float32) / 255.0
 image_data = cv2.cvtColor(image_data, cv2.COLOR_BGR2RGB)
 origin_image = image_data.copy()
+
+# --------------------- dpt run ------------------------#
+
+model_weight = 'weights/dpt_hybrid-midas-501f0c75.pt'
+dpt_run(parser_args.image_path, model_weight, True)
+
+# ----------------------------------------------------- #
 
 disp = np.float32(cv2.imread(parser_args.disp_path, cv2.IMREAD_GRAYSCALE))
 disp = (disp - disp.min()) / (disp.max() - disp.min())
