@@ -1,5 +1,5 @@
 # Ignore all files inside the weight folder
-/weight/*
+/weights/*
 
 # But do not ignore the weight folder itself
-!/weight/
+!/weights/
