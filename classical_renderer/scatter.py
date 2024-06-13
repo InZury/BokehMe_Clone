@@ -122,6 +122,7 @@ def set_tensor_and_idx(matched_obj, obj_values):
 # @cupy.memoize(bool_for_each_device=True)
 @cupy.memoize(True)
 def cupy_launch(func_name, kernel_code):
+    # return cupy.cuda.compile_with_cache(strKernel).get_function(strFunction)  <- Deprecated
     mod = cupy.RawModule(code=kernel_code)
 
     return mod.get_function(func_name)
@@ -129,6 +130,7 @@ def cupy_launch(func_name, kernel_code):
 
 class RenderData(torch.autograd.Function):
     @staticmethod
+    # def forward(self, image, refocus):  <- Not matched the signature param
     def forward(ctx, *args):
         image, refocus = args[0], args[1]
 

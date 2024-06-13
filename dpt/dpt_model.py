@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 from .dpt_blocks import (FeatureFusionBlockCustom, make_encoder)
 from .dpt_vit import forward_vit
 
