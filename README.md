@@ -65,6 +65,11 @@ DPT(Dense Prediction Transformer) 네트워크 [[DPT Origin]]에서 사용한 Vi
 DPT 포함한 코드를 demo.py에 포함했기 때문에 실행 코드는 기존과 동일하게 사용한다.  
 DPT 네트워크를 추가한 코드로 동작하기 때문에 .jpg 형의 원본 데이터 하나로 Bokeh 효과를 적용시킬 수 있다.
 
+### 주의점
+해당 Repo를 Clone하여 사용하기 위해 다음 환경을 준수한다.
+- Pycharm으로 동작
+- 가성 환경 생성 이후, environment.yml 파일을 이용해서 가상 환경 덮어 쓰기
+
 [Bokeh Origin]: https://github.com/JuewenPeng/BokehMe
 [code 1]: https://github.com/InZury/BokehMe_Clone/blob/c963476e6654d8ae24b72c1b014c055011f648db/classical_renderer/scatter.py#L125
 [code 2]: https://github.com/InZury/BokehMe_Clone/blob/c963476e6654d8ae24b72c1b014c055011f648db/classical_renderer/scatter.py#L133
