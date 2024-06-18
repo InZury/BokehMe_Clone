@@ -189,8 +189,9 @@ origin_image = image_data.copy()
 
 # --------------------- dpt run ------------------------#
 
-model_weight = 'weights/dpt_hybrid-midas-501f0c75.pt'
-dpt_run(parser_args.image_path, model_weight, True)
+if cv2.imread(parser_args.image_path[:-3] + "png") is None:
+    model_weight = 'weights/dpt_hybrid-midas-501f0c75.pt'
+    dpt_run(parser_args.image_path, model_weight, True)
 
 # ----------------------------------------------------- #
 

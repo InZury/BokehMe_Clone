@@ -1,5 +1,11 @@
 # Ignore all files inside the weight folder
 /weights/*
+/data/*
+/inputs/*
+/outputs/*
 
 # But do not ignore the weight folder itself
 !/weights/
+!/data/
+!/inputs/
+!/outputs/

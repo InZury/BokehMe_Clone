@@ -25,7 +25,7 @@ def set_module(in_channels, out_channels, kernel_size, stride, padding, batch_no
     # module.add_module('pad', nn.ReflectionPad2d(padding))
     module.add_module('conv', nn.Conv2d(in_channels, out_channels, kernel_size, stride, padding))
     module.add_module('bn', nn.BatchNorm2d(out_channels)) if batch_norm else None
-    module.add_module('activation', activation) if activation else None
+    module.add_module('activation', activation(inplace=True)) if activation else None
 
     return module
 
@@ -105,11 +105,11 @@ class ARNet(nn.Module):  # Adaptive Rendering Network
         self.connect_mode = connect_mode
 
         if activation == 'relu':
-            activation = nn.ReLU(inplace=True)
+            activation = nn.ReLU
         elif activation == 'leaky_relu':
-            activation = nn.LeakyReLU(inplace=True)
+            activation = nn.LeakyReLU
         elif activation == 'elu':
-            activation = nn.ELU(inplace=True)
+            activation = nn.ELU
         else:
             raise Exception("'activation' error!")
         # if end
@@ -138,19 +138,19 @@ class ARNet(nn.Module):  # Adaptive Rendering Network
         _, _, h, w = image.shape
         resize_h = int(h // self.shuffle_rate * self.shuffle_rate)
         resize_w = int(w // self.shuffle_rate * self.shuffle_rate)
-        x0 = torch.cat((image, refocus), dim=1)
-        x1 = func.interpolate(x0, size=(resize_h, resize_w), mode='bilinear', align_corners=True)
-        x2 = self.down_sample(x1)
-        gamma = torch.ones_like(x2[:, :1]) * gamma
-        x3 = torch.cat((x2, gamma), dim=1)
-        x4 = self.conv0(x3)
-        x5 = self.block_stack(x4)
-        x6 = self.conv1(x5)
-        x7 = self.up_sample(x6)
-        x8 = func.interpolate(x7, size=(h, w), mode='bilinear', align_corners=True)
+        x = torch.cat((image, refocus), dim=1)
+        x = func.interpolate(x, size=(resize_h, resize_w), mode='bilinear', align_corners=True)
+        x = self.down_sample(x)
+        gamma = torch.ones_like(x[:, :1]) * gamma
+        x = torch.cat((x, gamma), dim=1)
+        x = self.conv0(x)
+        x = self.block_stack(x)
+        x = self.conv1(x)
+        x = self.up_sample(x)
+        x = func.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
 
-        bokeh = x8[:, :-1]
-        mask = torch.sigmoid(x8[:, -1:])
+        bokeh = x[:, :-1]
+        mask = torch.sigmoid(x[:, -1:])
 
         return bokeh, mask
 
@@ -164,11 +164,11 @@ class IUNet(nn.Module):  # iterative up-sampling network
         self.connect_mode = connect_mode
 
         if activation == 'relu':
-            activation = nn.ReLU(inplace=True)
+            activation = nn.ReLU
         elif activation == 'leaky_relu':
-            activation = nn.LeakyReLU(inplace=True)
+            activation = nn.LeakyReLU
         elif activation == 'elu':
-            activation = nn.ELU(inplace=True)
+            activation = nn.ELU
         else:
             raise Exception("'activation' error!")
         # if end
@@ -197,21 +197,21 @@ class IUNet(nn.Module):  # iterative up-sampling network
         _, _, h, w = image.shape
         resize_h = int(h // self.shuffle_rate * self.shuffle_rate)
         resize_w = int(w // self.shuffle_rate * self.shuffle_rate)
-        x0 = torch.cat((image, refocus), dim=1)
-        x1 = func.interpolate(x0, size=(resize_h, resize_w), mode='bilinear', align_corners=True)
-        x2 = self.down_sample(x1)
+        x = torch.cat((image, refocus), dim=1)
+        x = func.interpolate(x, size=(resize_h, resize_w), mode='bilinear', align_corners=True)
+        x = self.down_sample(x)
 
-        if bokeh_coarse.shape[2] != x2.shape[2] or bokeh_coarse.shape[3] != x2.shape[3]:
-            bokeh_coarse = func.interpolate(bokeh_coarse, size=(x2.shape[2], x2.shape[3]),
+        if bokeh_coarse.shape[2] != x.shape[2] or bokeh_coarse.shape[3] != x.shape[3]:
+            bokeh_coarse = func.interpolate(bokeh_coarse, size=(x.shape[2], x.shape[3]),
                                             mode='bilinear', align_corners=True)
         # if end
 
-        gamma = torch.ones_like(x2[:, :1]) * gamma
-        x3 = torch.cat((x2, bokeh_coarse, gamma), dim=1)
-        x4 = self.conv0(x3)
-        x5 = self.block_stack(x4)
-        x6 = self.conv1(x5)
-        x7 = self.up_sample(x6)
-        bokeh_refine = func.interpolate(x7, size=(h, w), mode='bilinear', align_corners=True)
+        gamma = torch.ones_like(x[:, :1]) * gamma
+        x = torch.cat((x, bokeh_coarse, gamma), dim=1)
+        x = self.conv0(x)
+        x = self.block_stack(x)
+        x = self.conv1(x)
+        x = self.up_sample(x)
+        bokeh_refine = func.interpolate(x, size=(h, w), mode='bilinear', align_corners=True)
 
         return bokeh_refine

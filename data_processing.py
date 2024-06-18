@@ -1,37 +1,27 @@
 import os
-import cv2
-import numpy as np
+import torch
+from neural_renderer import ARNet, IUNet
+from torchsummary import summary
+from dpt.dpt_model import DPTDepthModel
+
+os.environ['OPENCV_IO_ENABLE_OPENEXR'] = '1'
+
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def stereo_disparity_map(left_img_path, right_img_path, index):
-    left_img = cv2.imread(left_img_path, cv2.IMREAD_GRAYSCALE)
-    right_img = cv2.imread(right_img_path, cv2.IMREAD_GRAYSCALE)
+def show_summary(is_dpt=False):
+    arnet_model = ARNet().to(device)
+    iunet_model = IUNet().to(device)
 
-    stereo_img = cv2.StereoBM_create(numDisparities=32, blockSize=7)
+    print("ARNet Summary")
+    summary(arnet_model, [(3, 1920, 1080), (1, 1920, 1080), (1, 1, 1)], batch_size=16)
 
-    disparity_map = stereo_img.compute(left_img, right_img).astype(np.float32)
+    print("IUNet Summary")
+    summary(iunet_model, [(3, 1920, 1080), (1, 1920, 1080), (3, 1920, 1080), (1, 1, 1)], batch_size=16)
 
-    cv2.imwrite(os.path.join(str(save_root), f'{index}.png'), disparity_map * 255)
+    if is_dpt:
+        dpt_model = DPTDepthModel(path='weights/dpt_hybrid-midas-501f0c75.pt', backbone='vit_base_resnet50_384',
+                                  non_negative=True, enable_attention_hooks=False).to(device)
 
-
-def resize_image(img_path):
-    image = cv2.imread(img_path).astype(np.float32)
-    # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-    resized_image = cv2.resize(image, dsize=(1633, 1225))
-
-    return resized_image
-
-
-save_root = "./inputs"
-
-if __name__ == '__main__':
-    left_path = 'inputs/47.jpg'
-    right_path = './stereo_data/47_right.jpg'
-
-    # stereo_disparity_map(left_path, right_path, 47)
-    # cv2.imwrite(os.path.join(save_root, '47_2.jpg'), resize_image('inputs/47.jpg'))
-
-    # ii = cv2.imread('./inputs/47_2.jpg').astype(np.float32)
-
-    # print(ii.shape)
+        print("DPT Summary")
+        summary(dpt_model, (3, 384, 384), batch_size=16)
